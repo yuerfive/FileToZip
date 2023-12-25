@@ -50,7 +50,7 @@ class FileToZip():
                     self.zip_directory(file_path, zipf, file_path)
 
                 # 分卷压缩
-                self.zip_part(zip_name ,volume_size)
+                self.zip_part_compress(zip_name ,volume_size)
 
         else:
             # 检查文件大小
@@ -65,7 +65,7 @@ class FileToZip():
                     zipf.write(file_path, os.path.basename(file_path))
 
                 # 分卷压缩
-                self.zip_part(zip_name ,volume_size)
+                self.zip_part_compress(zip_name ,volume_size)
 
 
     # 解压文件
@@ -99,7 +99,7 @@ class FileToZip():
 
 
     # 分卷压缩
-    def zip_part(self ,zip_name ,volume_size):
+    def zip_part_compress(self ,zip_name ,volume_size):
         # 读取文件内容
         with open(f'{zip_name}.zip', 'rb') as f:
             data = f.read()
@@ -116,7 +116,7 @@ class FileToZip():
 
             # 写入分卷文件
             volume_data = data[start:end]
-            volume_filename = f"{zip_name}.part{i+1}.zip"
+            volume_filename = f"{zip_name}_part{i+1}.zip"
             with open(volume_filename, 'wb') as vf:
                 vf.write(volume_data)
 
