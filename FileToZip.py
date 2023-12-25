@@ -1,7 +1,7 @@
 # 打包为exe
 # pyinstaller -F --uac-admi FileToZip.py --noconsole
 
-import sys ,os ,shutil ,json ,zipfile ,subprocess
+import sys ,os ,shutil ,json ,zipfile
 from zipfile import ZipFile
 
 class FileToZip():
