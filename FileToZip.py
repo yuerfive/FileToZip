@@ -9,14 +9,18 @@ class FileToZip():
 
         # 在exe环境运行时，config_path设置为获取已经设置的环境变量
         self.config_path = os.environ.get('FileToZip')
+
         # 在py环境运行时，config_path设置为config.json文件的绝对路径，打包时注释掉
         # self.config_path = r'E:\project\Python\FileToZip\config.json'
+        # print(f'以下为调试输出：\n选中的文件路径：{sys.argv[2]}\n状态标志：{sys.argv[1]}')
 
-        self.get_info()
+        # 执行功能判断
+        self.executiveFunctionJudgment()
 
 
-    #  获取信息
-    def get_info(self):
+    #  执行功能判断
+    def executiveFunctionJudgment(self):
+        # 以接收的参数的值来判断执行的功能是压缩还是解压
         if sys.argv[1] == '1':
             self.compress(sys.argv[2])
         elif sys.argv[1] == '0':
