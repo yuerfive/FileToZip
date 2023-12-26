@@ -1,8 +1,6 @@
 # 打包为exe
 # pyinstaller -F --uac-admi Setup.py --noconsole
 
-
-import winreg as reg
 import os ,json ,winreg
 
 class Setup():
@@ -39,28 +37,28 @@ class Setup():
     # 添加文件菜单
     def addFileMenu(self):
         # 打开 "文件" 类型的注册表键
-        with reg.OpenKey(reg.HKEY_CLASSES_ROOT, "*", 0, reg.KEY_ALL_ACCESS) as key:
+        with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, "*", 0, winreg.KEY_ALL_ACCESS) as key:
             try:
 
                 # 创建一个新的子键
-                with reg.CreateKey(key, "shell\\compress") as subkey:
+                with winreg.CreateKey(key, "shell\\compress") as subkey:
                     # 设置默认字符串值
-                    reg.SetValue(subkey, None, reg.REG_SZ, "压缩文件")
+                    winreg.SetValue(subkey, None, winreg.REG_SZ, "压缩文件")
 
                     # 设置命令值
-                    command_key = reg.CreateKey(subkey, "command")
+                    command_key = winreg.CreateKey(subkey, "command")
                     # 运行脚本，参数1为自定义参数，参数2为文件路径
-                    reg.SetValueEx(command_key, "", 0, reg.REG_SZ, f"\"{self.run_bat_path}\" \"1\" \"%V\"")
+                    winreg.SetValueEx(command_key, "", 0, winreg.REG_SZ, f"\"{self.run_bat_path}\" \"1\" \"%V\"")
 
                 # 创建一个新的子键
-                with reg.CreateKey(key, "shell\\decompress") as subkey:
+                with winreg.CreateKey(key, "shell\\decompress") as subkey:
                     # 设置默认字符串值
-                    reg.SetValue(subkey, None, reg.REG_SZ, "解压文件")
+                    winreg.SetValue(subkey, None, winreg.REG_SZ, "解压文件")
 
                     # 设置命令值
-                    command_key = reg.CreateKey(subkey, "command")
+                    command_key = winreg.CreateKey(subkey, "command")
                     # 运行脚本，参数1为自定义参数，参数2为文件路径
-                    reg.SetValueEx(command_key, "", 0, reg.REG_SZ, f"\"{self.run_bat_path}\" \"0\" \"%V\"")
+                    winreg.SetValueEx(command_key, "", 0, winreg.REG_SZ, f"\"{self.run_bat_path}\" \"0\" \"%V\"")
 
             except Exception as e:
                 print(f"Error: {e}")
@@ -69,17 +67,17 @@ class Setup():
     # 添加文件夹菜单
     def addFolderMenu(self):
         # 打开 "文件夹" 类型的注册表键
-        with reg.OpenKey(reg.HKEY_CLASSES_ROOT, "Directory", 0, reg.KEY_ALL_ACCESS) as key:
+        with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, "Directory", 0, winreg.KEY_ALL_ACCESS) as key:
             try:
                 # 创建一个新的子键
-                with reg.CreateKey(key, "shell\\compress") as subkey:
+                with winreg.CreateKey(key, "shell\\compress") as subkey:
                     # 设置默认字符串值
-                    reg.SetValue(subkey, None, reg.REG_SZ, "压缩文件")
+                    winreg.SetValue(subkey, None, winreg.REG_SZ, "压缩文件")
 
                     # 设置命令值
-                    command_key = reg.CreateKey(subkey, "command")
+                    command_key = winreg.CreateKey(subkey, "command")
                     # 运行脚本，参数1为自定义参数，参数2为文件路径
-                    reg.SetValueEx(command_key, "", 0, reg.REG_SZ, f"\"{self.run_bat_path}\" \"1\" \"%V\"")
+                    winreg.SetValueEx(command_key, "", 0, winreg.REG_SZ, f"\"{self.run_bat_path}\" \"1\" \"%V\"")
             except Exception as e:
                 print(f"Error: {e}")
 
