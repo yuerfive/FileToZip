@@ -38,7 +38,7 @@ class FileToZip():
             info = json.load(f)
         volume_size = info['分卷大小'] * 1024 * 1024
 
-        zip_name = self.extractFileName(file_path)
+        zip_name = self.get_file_name(file_path)
 
         # 是否为文件夹
         if os.path.isdir(file_path):
@@ -148,11 +148,13 @@ class FileToZip():
                 zipf.write(file_path, arcname=relative_file_path)
 
 
-    # 提取文件名，不要后缀名
-    def extractFileName(self ,file_path):
-        base_name = os.path.basename(file_path)
-        file_name = os.path.splitext(base_name)[0]
-        return file_name
+    # 提取文件名，如果是文件夹，则返回文件夹名
+    def get_file_name(self ,path):
+        # 是否是文件夹
+        if os.path.isdir(path):
+            return os.path.basename(path)
+        base_name = os.path.basename(path)
+        return os.path.splitext(base_name)[0]
 
 
     # 判断是否为分卷ZIP文件
