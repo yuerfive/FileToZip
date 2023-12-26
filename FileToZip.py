@@ -2,7 +2,6 @@
 # pyinstaller -F --uac-admi FileToZip.py --noconsole
 
 import sys ,os ,shutil ,json ,zipfile
-from zipfile import ZipFile
 
 class FileToZip():
 
@@ -57,11 +56,11 @@ class FileToZip():
             file_size = os.path.getsize(file_path)
             if file_size <= volume_size:
                 # 压缩为单个文件
-                with ZipFile(f'{zip_name}.zip', 'w') as zipf:
+                with zipfile.ZipFile(f'{zip_name}.zip', 'w') as zipf:
                     zipf.write(file_path, os.path.basename(file_path))
             else:
                 # 压缩为单个文件
-                with ZipFile(f'{zip_name}.zip', 'w') as zipf:
+                with zipfile.ZipFile(f'{zip_name}.zip', 'w') as zipf:
                     zipf.write(file_path, os.path.basename(file_path))
 
                 # 分卷压缩
@@ -86,7 +85,7 @@ class FileToZip():
                         shutil.copyfileobj(part_zip, output_zip)
 
             # 解压合并后的zip文件
-            with ZipFile(temp_zip, 'r') as full_zip:
+            with zipfile.ZipFile(temp_zip, 'r') as full_zip:
                 full_zip.extractall()
 
             # 删除合并的zip文件
@@ -94,7 +93,7 @@ class FileToZip():
 
         else:
             # 直接解压ZIP文件
-            with ZipFile(zip_path, 'r') as full_zip:
+            with zipfile.ZipFile(zip_path, 'r') as full_zip:
                 full_zip.extractall()
 
 
