@@ -91,7 +91,7 @@ class FileToZip():
                     with open(file_path, 'rb') as part_zip:
                         shutil.copyfileobj(part_zip, output_zip)
 
-            # 解压合并后的zip文件
+            # 解压合并后的zip文件到folder_path
             with zipfile.ZipFile(temp_zip, 'r') as full_zip:
                 full_zip.extractall(folder_path)
 
@@ -99,7 +99,7 @@ class FileToZip():
             os.remove(temp_zip)
 
         else:
-            # 直接解压ZIP文件
+            # 直接解压ZIP文件到folder_path
             with zipfile.ZipFile(zip_path, 'r') as full_zip:
                 full_zip.extractall(folder_path)
 
