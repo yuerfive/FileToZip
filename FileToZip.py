@@ -8,10 +8,10 @@ class FileToZip():
     def __init__(self):
 
         # 在exe环境运行时，config_path设置为获取已经设置的环境变量
-        self.config_path = os.environ.get('FileToZip')
+        # self.config_path = os.environ.get('FileToZip')
 
         # 在py环境运行时，config_path设置为config.json文件的绝对路径，打包时注释掉
-        # self.config_path = r'E:\project\Python\FileToZip\config.json'
+        self.config_path = r'E:\project\Python\FileToZip\config.json'
         # print(f'以下为调试输出：\n选中的文件路径：{sys.argv[2]}\n状态标志：{sys.argv[1]}')
 
         # 执行功能判断
@@ -78,19 +78,22 @@ class FileToZip():
         if '.zip' not in zip_path:
             return
 
+        # 根据压缩文件名和路径，创建文件夹
+        folder_path = self.createFolders(zip_path)
+        # 判断是否为分卷压缩，返回分卷文件路径列表
         file_list = self.is_part_zip(zip_path)
         if file_list:
-            dirname = os.path.dirname(zip_path)
+            # 构建临时zip文件路径
             temp_zip = f'{os.path.dirname(zip_path)}\\temp.zip'
             with open(temp_zip, 'ab') as output_zip:
-                # 逐个打开分卷文件并写入合并文件
-                for file_name in file_list:
-                    with open(f'{dirname}\\{file_name}', 'rb') as part_zip:
+                # 逐个打开分卷文件并写入临时zip文件
+                for file_path in file_list:
+                    with open(file_path, 'rb') as part_zip:
                         shutil.copyfileobj(part_zip, output_zip)
 
             # 解压合并后的zip文件
             with zipfile.ZipFile(temp_zip, 'r') as full_zip:
-                full_zip.extractall()
+                full_zip.extractall(folder_path)
 
             # 删除合并的zip文件
             os.remove(temp_zip)
@@ -98,7 +101,7 @@ class FileToZip():
         else:
             # 直接解压ZIP文件
             with zipfile.ZipFile(zip_path, 'r') as full_zip:
-                full_zip.extractall()
+                full_zip.extractall(folder_path)
 
 
     # 分卷压缩
@@ -158,16 +161,16 @@ class FileToZip():
         if 'part' not in base_name:
             return False
 
-        # 同名前缀
+        # 同名前缀，[听雨竞技_part1.zip]，前缀为[听雨竞技_part]
         homonymPrefix = os.path.splitext(base_name)[0][0:-1]
         file_list = []
-        # 获取文件夹名
+        # 获取路径中的目录
         dir_name = os.path.dirname(zip_path)
         # 遍历文件夹，获取同名前缀分卷文件
         n = 1
         for file_name in os.listdir(dir_name):
             if homonymPrefix in file_name:
-                file_list.append(f'{homonymPrefix}{n}.zip')
+                file_list.append(f'{dir_name}\\{homonymPrefix}{n}.zip')
                 n += 1
         return file_list
 
@@ -182,6 +185,18 @@ class FileToZip():
                 total_size += os.path.getsize(file_path)
 
         return total_size
+
+
+    # 根据压缩文件名和路径，创建文件夹
+    def createFolders(self ,zip_path):
+        path = os.path.dirname(zip_path)
+        if '_part' in zip_path:
+            folder_name = os.path.basename(zip_path).split('_part')[0]
+        else:
+            folder_name = os.path.basename(zip_path).split('.zip')[0]
+
+        os.mkdir(path + '\\' + folder_name)
+        return path + '\\' + folder_name
 
 
 if __name__ == "__main__":
