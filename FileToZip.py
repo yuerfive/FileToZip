@@ -12,6 +12,12 @@ class FileToZip():
 
         # 在py环境运行时，config_path设置为config.json文件的绝对路径，打包时注释掉
         self.config_path = r'E:\project\Python\FileToZip\config.json'
+
+        with open(self.config_path, 'r' ,encoding='utf-8') as f:
+            info = json.load(f)
+        self.volume_size = info['分卷大小'] * 1024 * 1024
+
+
         # print(f'以下为调试输出：\n选中的文件路径：{sys.argv[2]}\n状态标志：{sys.argv[1]}')
 
         # 执行功能判断
@@ -36,41 +42,38 @@ class FileToZip():
         if '.zip' in file_path:
             return
 
-        with open(self.config_path, 'r' ,encoding='utf-8') as f:
-            info = json.load(f)
-        volume_size = info['分卷大小'] * 1024 * 1024
-
+        # 获取文件名
         zip_name = self.get_file_name(file_path)
 
-        # 是否为文件夹
+        # 获取文件或目录的大小
         if os.path.isdir(file_path):
-            file_size = self.get_directory_size(file_path)
-            if file_size <= volume_size:
-                # 压缩为单个文件
-                with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    self.zip_directory(file_path, zipf, file_path)
-            else:
-                # 压缩为单个文件
-                with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    self.zip_directory(file_path, zipf, file_path)
-
-                # 分卷压缩
-                self.zip_part_compress(zip_name ,volume_size)
-
+            file_size = self.get_directory_size(file_path)  # 获取目录大小
         else:
-            # 检查文件大小
-            file_size = os.path.getsize(file_path)
-            if file_size <= volume_size:
-                # 压缩为单个文件
-                with zipfile.ZipFile(f'{zip_name}.zip', 'w') as zipf:
-                    zipf.write(file_path, os.path.basename(file_path))
-            else:
-                # 压缩为单个文件
-                with zipfile.ZipFile(f'{zip_name}.zip', 'w') as zipf:
+            file_size = os.path.getsize(file_path)  # 获取文件大小
+
+        # 压缩为单个zip文件
+        if file_size <= self.volume_size or self.volume_size == 0:
+            # 如果文件或目录大小不超过指定的卷大小，直接压缩为一个文件
+            with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
+                if os.path.isdir(file_path):
+                    # 如果是目录，将目录及其内容压缩到 zip 文件中
+                    self.zip_directory(file_path, zipf, file_path)
+                else:
+                    # 如果是文件，直接将文件添加到 zip 文件中
                     zipf.write(file_path, os.path.basename(file_path))
 
-                # 分卷压缩
-                self.zip_part_compress(zip_name ,volume_size)
+        # 分卷压缩
+        else:
+            # 如果文件或目录大小超过指定的卷大小，先压缩为一个文件，然后进行分卷压缩
+            with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
+                if os.path.isdir(file_path):
+                    self.zip_directory(file_path, zipf, file_path)
+                else:
+                    zipf.write(file_path, os.path.basename(file_path))
+
+            # 分卷压缩逻辑
+            self.zip_part_compress(zip_name, self.volume_size)
+
 
 
     # 文件夹压缩
@@ -92,20 +95,20 @@ class FileToZip():
 
 
     # 分卷压缩
-    def zip_part_compress(self ,zip_name ,volume_size):
+    def zip_part_compress(self ,zip_name):
         # 读取文件内容
         with open(f'{zip_name}.zip', 'rb') as f:
             data = f.read()
 
         # 计算分卷数量
         total_size = len(data)
-        num_volumes = (total_size + volume_size - 1) // volume_size
+        num_volumes = (total_size + self.volume_size - 1) // self.volume_size
 
         # 逐个写入分卷文件
         for i in range(num_volumes):
             # 计算分卷文件长度
-            start = i * volume_size
-            end = min(start + volume_size, total_size)
+            start = i * self.volume_size
+            end = min(start + self.volume_size, total_size)
 
             # 写入分卷文件
             volume_data = data[start:end]
