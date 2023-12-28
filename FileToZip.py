@@ -27,6 +27,8 @@ class FileToZip():
             self.decompress(sys.argv[2])
 
 
+#   --------------------------------------------------压缩文件-------------------------------------------------
+
     # 压缩文件
     def compress(self ,file_path):
 
@@ -71,6 +73,74 @@ class FileToZip():
                 self.zip_part_compress(zip_name ,volume_size)
 
 
+    # 文件夹压缩
+    def zip_directory(self ,file_path ,zipf ,base_path=""):
+        for root, dirs, files in os.walk(file_path):
+            # 计算当前文件夹在 ZIP 中的相对路径
+            relative_path = os.path.relpath(root, base_path)
+
+            # 忽略根目录
+            if relative_path!= ".":
+                # 添加当前文件夹到 ZIP 文件中
+                zipf.write(root, arcname=relative_path)
+
+            # 添加当前文件夹中的所有文件到 ZIP 文件中
+            for file in files:
+                file_path = os.path.join(root, file)
+                relative_file_path = os.path.relpath(file_path, base_path)
+                zipf.write(file_path, arcname=relative_file_path)
+
+
+    # 分卷压缩
+    def zip_part_compress(self ,zip_name ,volume_size):
+        # 读取文件内容
+        with open(f'{zip_name}.zip', 'rb') as f:
+            data = f.read()
+
+        # 计算分卷数量
+        total_size = len(data)
+        num_volumes = (total_size + volume_size - 1) // volume_size
+
+        # 逐个写入分卷文件
+        for i in range(num_volumes):
+            # 计算分卷文件长度
+            start = i * volume_size
+            end = min(start + volume_size, total_size)
+
+            # 写入分卷文件
+            volume_data = data[start:end]
+            volume_filename = f"{zip_name}_part{i+1}.zip"
+            with open(volume_filename, 'wb') as vf:
+                vf.write(volume_data)
+
+        # 删除原压缩文件，只保留分卷文件
+        os.remove(f'{zip_name}.zip')
+
+
+    # 提取文件名，如果是文件夹，则返回文件夹名
+    def get_file_name(self ,path):
+        # 是否是文件夹
+        if os.path.isdir(path):
+            return os.path.basename(path)
+        base_name = os.path.basename(path)
+        return os.path.splitext(base_name)[0]
+
+
+    # 计算指定目录中所有文件的总大小（以bytes为单位）。
+    def get_directory_size(self ,path):
+        total_size = 0
+
+        for dirpath, _, filenames in os.walk(path):
+            for filename in filenames:
+                file_path = os.path.join(dirpath, filename)
+                total_size += os.path.getsize(file_path)
+
+        return total_size
+
+
+
+#   --------------------------------------------------解压文件-------------------------------------------------
+
     # 解压文件
     def decompress(self ,zip_path):
 
@@ -104,59 +174,6 @@ class FileToZip():
                 full_zip.extractall(folder_path)
 
 
-    # 分卷压缩
-    def zip_part_compress(self ,zip_name ,volume_size):
-        # 读取文件内容
-        with open(f'{zip_name}.zip', 'rb') as f:
-            data = f.read()
-
-        # 计算分卷数量
-        total_size = len(data)
-        num_volumes = (total_size + volume_size - 1) // volume_size
-
-        # 逐个写入分卷文件
-        for i in range(num_volumes):
-            # 计算分卷文件长度
-            start = i * volume_size
-            end = min(start + volume_size, total_size)
-
-            # 写入分卷文件
-            volume_data = data[start:end]
-            volume_filename = f"{zip_name}_part{i+1}.zip"
-            with open(volume_filename, 'wb') as vf:
-                vf.write(volume_data)
-
-        # 删除原压缩文件，只保留分卷文件
-        os.remove(f'{zip_name}.zip')
-
-
-    # 文件夹压缩
-    def zip_directory(self ,file_path ,zipf ,base_path=""):
-        for root, dirs, files in os.walk(file_path):
-            # 计算当前文件夹在 ZIP 中的相对路径
-            relative_path = os.path.relpath(root, base_path)
-
-            # 忽略根目录
-            if relative_path!= ".":
-                # 添加当前文件夹到 ZIP 文件中
-                zipf.write(root, arcname=relative_path)
-
-            # 添加当前文件夹中的所有文件到 ZIP 文件中
-            for file in files:
-                file_path = os.path.join(root, file)
-                relative_file_path = os.path.relpath(file_path, base_path)
-                zipf.write(file_path, arcname=relative_file_path)
-
-
-    # 提取文件名，如果是文件夹，则返回文件夹名
-    def get_file_name(self ,path):
-        # 是否是文件夹
-        if os.path.isdir(path):
-            return os.path.basename(path)
-        base_name = os.path.basename(path)
-        return os.path.splitext(base_name)[0]
-
-
     # 判断是否为分卷ZIP文件
     def is_part_zip(self ,zip_path):
         base_name = os.path.basename(zip_path)
@@ -175,18 +192,6 @@ class FileToZip():
                 file_list.append(f'{dir_name}\\{homonymPrefix}{n}.zip')
                 n += 1
         return file_list
-
-
-    # 计算指定目录中所有文件的总大小（以bytes为单位）。
-    def get_directory_size(self ,path):
-        total_size = 0
-
-        for dirpath, _, filenames in os.walk(path):
-            for filename in filenames:
-                file_path = os.path.join(dirpath, filename)
-                total_size += os.path.getsize(file_path)
-
-        return total_size
 
 
     # 根据压缩文件名和路径，创建文件夹
