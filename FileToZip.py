@@ -180,7 +180,7 @@ class FileToZip():
         if 'part' not in base_name:
             return False
 
-        # 同名前缀，[听雨竞技_part1.zip]，前缀为[听雨竞技_part]
+        # 同名前缀，[test_part1.zip]，前缀为[test_part]
         homonymPrefix = os.path.splitext(base_name)[0][0:-1]
         file_list = []
         # 获取路径中的目录
