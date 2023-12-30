@@ -191,7 +191,9 @@ class FileToZip():
         # 遍历文件夹，获取同名前缀分卷文件
         n = 1
         for file_name in os.listdir(dir_name):
-            if homonymPrefix in file_name:
+            if '.zip' not in file_name:
+                continue
+            elif homonymPrefix in file_name:
                 file_list.append(f'{dir_name}\\{homonymPrefix}{n}.zip')
                 n += 1
         return file_list
