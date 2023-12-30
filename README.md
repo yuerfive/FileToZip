@@ -1,4 +1,4 @@
-开发环境:Python(3.11.6)+VSCode
+开发环境:Python(3.11.6 64-bit)+VSCode
 
 打包工具:pyinstaller
 
