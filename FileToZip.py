@@ -113,19 +113,6 @@ class FileToZip():
         return os.path.splitext(base_name)[0]
 
 
-    # 计算指定目录中所有文件的总大小（以bytes为单位）。
-    def get_directory_size(self ,path):
-        total_size = 0
-
-        for dirpath, _, filenames in os.walk(path):
-            for filename in filenames:
-                file_path = os.path.join(dirpath, filename)
-                total_size += os.path.getsize(file_path)
-
-        return total_size
-
-
-
 #   --------------------------------------------------解压文件-------------------------------------------------
 
     # 解压文件
