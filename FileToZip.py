@@ -42,38 +42,22 @@ class FileToZip():
         if '.zip' in file_path:
             return
 
-        # 获取文件名
+        # 获取文件名，或文件夹名
         zip_name = self.get_file_name(file_path)
 
-        # 获取文件或目录的大小
-        if os.path.isdir(file_path):
-            file_size = self.get_directory_size(file_path)  # 获取目录大小
-        else:
-            file_size = os.path.getsize(file_path)  # 获取文件大小
-
         # 压缩为单个zip文件
-        if file_size <= self.volume_size or self.volume_size == 0:
-            # 如果文件或目录大小不超过指定的卷大小，直接压缩为一个文件
-            with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
-                if os.path.isdir(file_path):
-                    # 如果是目录，将目录及其内容压缩到 zip 文件中
-                    self.zip_directory(file_path, zipf, file_path)
-                else:
-                    # 如果是文件，直接将文件添加到 zip 文件中
-                    zipf.write(file_path, os.path.basename(file_path))
+        with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
+            if os.path.isdir(file_path):
+                # 如果是目录，将目录及其内容压缩到 zip 文件中
+                self.zip_directory(file_path, zipf, file_path)
+            else:
+                # 如果是文件，直接将文件添加到 zip 文件中
+                zipf.write(file_path, os.path.basename(file_path))
 
         # 分卷压缩
-        else:
-            # 如果文件或目录大小超过指定的卷大小，先压缩为一个文件，然后进行分卷压缩
-            with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
-                if os.path.isdir(file_path):
-                    self.zip_directory(file_path, zipf, file_path)
-                else:
-                    zipf.write(file_path, os.path.basename(file_path))
-
-            # 分卷压缩逻辑
-            self.zip_part_compress(zip_name, self.volume_size)
-
+        file_size = os.path.getsize(f'{zip_name}.zip')
+        if file_size > self.volume_size and self.volume_size != 0:
+            self.zip_part_compress(zip_name)
 
 
     # 文件夹压缩
