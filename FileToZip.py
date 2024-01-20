@@ -136,7 +136,7 @@ class FileToZip():
                         shutil.copyfileobj(part_zip, output_zip)
 
             # 解压合并后的zip文件到folder_path
-            with zipfile.ZipFile(temp_zip, 'r') as full_zip:
+            with self.codeConversion(zipfile.ZipFile(zip_path)) as full_zip:
                 full_zip.extractall(folder_path)
 
             # 删除合并的zip文件
@@ -144,7 +144,7 @@ class FileToZip():
 
         else:
             # 直接解压ZIP文件到folder_path
-            with zipfile.ZipFile(zip_path, 'r') as full_zip:
+            with self.codeConversion(zipfile.ZipFile(zip_path)) as full_zip:
                 full_zip.extractall(folder_path)
 
 
@@ -180,6 +180,19 @@ class FileToZip():
 
         os.mkdir(path + '\\' + folder_name)
         return path + '\\' + folder_name
+
+
+    # 编码转换
+    def codeConversion(self ,zip_file):
+        name_to_info = zip_file.NameToInfo
+        # copy map first
+        for name, info in name_to_info.copy().items():
+            real_name = name.encode('cp437').decode('gbk')
+            if real_name != name:
+                info.filename = real_name
+                del name_to_info[name]
+                name_to_info[real_name] = info
+        return zip_file
 
 
 if __name__ == "__main__":
