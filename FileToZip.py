@@ -136,7 +136,8 @@ class FileToZip():
                         shutil.copyfileobj(part_zip, output_zip)
 
             # 解压合并后的zip文件到folder_path
-            with self.codeConversion(zipfile.ZipFile(zip_path)) as full_zip:
+            # 解码器优先级 判断是否为[utf-8] 否则使用[metadata_encoding] 未配置则使用[None = cp437]
+            with zipfile.ZipFile(zip_path ,'r' ,metadata_encoding="gbk") as full_zip:
                 full_zip.extractall(folder_path)
 
             # 删除合并的zip文件
@@ -144,7 +145,8 @@ class FileToZip():
 
         else:
             # 直接解压ZIP文件到folder_path
-            with self.codeConversion(zipfile.ZipFile(zip_path)) as full_zip:
+            # 解码器优先级 判断是否为[utf-8] 否则使用[metadata_encoding] 未配置则使用[None = cp437]
+            with zipfile.ZipFile(zip_path ,'r' ,metadata_encoding="gbk") as full_zip:
                 full_zip.extractall(folder_path)
 
 
@@ -181,18 +183,6 @@ class FileToZip():
         os.mkdir(path + '\\' + folder_name)
         return path + '\\' + folder_name
 
-
-    # 编码转换
-    def codeConversion(self ,zip_file):
-        name_to_info = zip_file.NameToInfo
-        # copy map first
-        for name, info in name_to_info.copy().items():
-            real_name = name.encode('cp437').decode('gbk')
-            if real_name != name:
-                info.filename = real_name
-                del name_to_info[name]
-                name_to_info[real_name] = info
-        return zip_file
 
 
 if __name__ == "__main__":
