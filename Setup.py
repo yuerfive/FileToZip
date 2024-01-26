@@ -5,18 +5,23 @@ import os ,json ,winreg
 
 class Setup():
     def __init__(self):
-        # 构造config.json文件的绝对路径
-        config_path = os.getcwd() + '\\config.json'
+
+        # 运行环境设置
+        # 在 python 环境下运行时，需要设置 environment 变量为 'py'
+        # 打包为exe时，需要设置 environment 变量为 'exe'
+        environment = 'py'
+        if environment == 'py':
+            self.run_bat_path = f"{os.path.abspath(os.getcwd())}\\run_py.bat"
+        elif environment == 'exe':
+            self.run_bat_path = f"{os.path.abspath(os.getcwd())}\\run_exe.bat"
+
         # 将config.json文件路径写入环境变量
+        config_path = os.getcwd() + '\\config.json'
         self.set_system_env_var('FileToZip', config_path)
 
-        # 获取当前环境
-        with open(config_path, 'r' ,encoding='utf-8') as f:
-            info = json.load(f)
-        if info['当前环境'] == 'py':
-            self.run_bat_path = f"{os.path.abspath(os.getcwd())}\\run_py.bat"
-        elif info['当前环境'] == 'exe':
-            self.run_bat_path = f"{os.path.abspath(os.getcwd())}\\run_exe.bat"
+        # 将UnRAR工具路径写入环境变量
+        UnRAR_path = os.getcwd() + '\\UnRAR.exe'
+        self.set_system_env_var('UnRAR', UnRAR_path)
 
         self.addFileMenu()
         self.addFolderMenu()

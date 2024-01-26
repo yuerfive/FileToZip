@@ -1,25 +1,29 @@
 # 打包为exe
 # pyinstaller -F --uac-admi FileToZip.py --noconsole
 
-import sys ,os ,shutil ,json ,zipfile
+import sys ,os ,re ,shutil ,json ,zipfile ,rarfile
+
 
 class FileToZip():
 
     def __init__(self):
 
-        # 在exe环境运行时，config_path设置为获取已经设置的环境变量
-        # self.config_path = os.environ.get('FileToZip')
+        # 运行环境设置
+        # 在 python 环境下运行时，需要设置 environment 变量为 'py'
+        # 打包为exe时，需要设置 environment 变量为 'exe'
+        environment = 'py'
+        if environment == 'py':
+            rarfile.UNRAR_TOOL = r'E:\project\Python\FileToZip\UnRAR.exe'
+            self.config_path = r'E:\project\Python\FileToZip\config.json'
+        elif environment == 'exe':
+            rarfile.UNRAR_TOOL = os.environ.get('UnRAR')
+            self.config_path = os.environ.get('FileToZip')
 
-        # 在py环境运行时，config_path设置为config.json文件的绝对路径，打包时注释掉
-        self.config_path = r'E:\project\Python\FileToZip\config.json'
+        # print(f'以下为调试输出：\n选中的文件路径：{sys.argv[2]}\n状态标志：{sys.argv[1]}')
 
         with open(self.config_path, 'r' ,encoding='utf-8') as f:
             info = json.load(f)
         self.volume_size = info['分卷大小'] * 1024 * 1024
-
-
-        # print(f'以下为调试输出：\n选中的文件路径：{sys.argv[2]}\n状态标志：{sys.argv[1]}')
-
         # 执行功能判断
         self.executiveFunctionJudgment()
 
@@ -116,16 +120,21 @@ class FileToZip():
 #   --------------------------------------------------解压文件-------------------------------------------------
 
     # 解压文件
-    def decompress(self ,zip_path):
+    def decompress(self ,path):
 
         # 只解压ZIP文件
-        if '.zip' not in zip_path:
-            return
+        if '.zip' in path:
+            self.decompress_zip(path)
+        elif '.rar' in path:
+            self.decompress_rar(path)
+
+    # 解压zip文件
+    def decompress_zip(self ,zip_path):
 
         # 根据压缩文件名和路径，创建文件夹
         folder_path = self.createFolders(zip_path)
         # 判断是否为分卷压缩，返回分卷文件路径列表
-        file_list = self.is_part_zip(zip_path)
+        file_list = self.is_part_file(zip_path)
         if file_list:
             # 构建临时zip文件路径
             temp_zip = f'{os.path.dirname(zip_path)}\\temp.zip'
@@ -137,7 +146,7 @@ class FileToZip():
 
             # 解压合并后的zip文件到folder_path
             # 解码器优先级 判断是否为[utf-8] 否则使用[metadata_encoding] 未配置则使用[None = cp437]
-            with zipfile.ZipFile(zip_path ,'r' ,metadata_encoding="gbk") as full_zip:
+            with zipfile.ZipFile(temp_zip ,'r' ,metadata_encoding="gbk") as full_zip:
                 full_zip.extractall(folder_path)
 
             # 删除合并的zip文件
@@ -150,39 +159,78 @@ class FileToZip():
                 full_zip.extractall(folder_path)
 
 
-    # 判断是否为分卷ZIP文件
-    def is_part_zip(self ,zip_path):
-        base_name = os.path.basename(zip_path)
+    # 解压rar文件
+    def decompress_rar(self ,rar_path):
+        # 根据压缩文件名和路径，创建文件夹
+        folder_path = self.createFolders(rar_path)
+        # 判断是否为分卷压缩，返回分卷文件路径列表
+        file_list = self.is_part_file(rar_path)
+
+        if file_list:
+            with rarfile.RarFile(file_list[0] ,'r') as full_rar:
+                full_rar.extractall(folder_path)
+        else:
+            with rarfile.RarFile(rar_path ,'r') as full_rar:
+                full_rar.extractall(folder_path)
+
+
+
+    # 判断是否为分卷文件
+    def is_part_file(self ,path):
+        # 获取路径中的文件名部分
+        base_name = os.path.basename(path)
         if 'part' not in base_name:
             return False
 
-        # 同名前缀，[test_part1.zip]，前缀为[test_part]
-        homonymPrefix = os.path.splitext(base_name)[0][0:-1]
-        file_list = []
+        # 获取后缀名
+        if '.zip' in base_name:
+            suffix = '.zip'
+        elif '.rar' in base_name:
+            suffix = '.rar'
+        else:
+            return False
+
+        # 去除末尾编号，获取同名前缀，[test_part1.zip]，前缀为[test_part]
+        prefix = os.path.splitext(base_name)[0].rstrip('0123456789')
         # 获取路径中的目录
-        dir_name = os.path.dirname(zip_path)
-        # 遍历文件夹，获取同名前缀分卷文件
-        n = 1
+        dir_name = os.path.dirname(path)
+
+        # 文件数量
+        file_count = 0
+        # 最小编号长度
+        min_number_length = 10
+
+        # 获取同名前缀文件数量，及最小编号长度
         for file_name in os.listdir(dir_name):
-            if '.zip' not in file_name:
-                continue
-            elif homonymPrefix in file_name:
-                file_list.append(f'{dir_name}\\{homonymPrefix}{n}.zip')
-                n += 1
+            if prefix in file_name:
+                min_number_length = min(len(re.search(r'\d+$', os.path.splitext(base_name)[0]).group()) ,min_number_length)
+                file_count += 1
+
+        # 创建分卷文件完整路径列表
+        file_list = []
+        for i in range(file_count):
+            fill = '0' * (min_number_length - len(str(i+1)))
+            file_list.append(f'{dir_name}\\{prefix}{fill}{i+1}{suffix}')
+
         return file_list
 
-
     # 根据压缩文件名和路径，创建文件夹
-    def createFolders(self ,zip_path):
-        path = os.path.dirname(zip_path)
-        if '_part' in zip_path:
-            folder_name = os.path.basename(zip_path).split('_part')[0]
-        else:
-            folder_name = os.path.basename(zip_path).split('.zip')[0]
+    def createFolders(self ,path):
+        # 获取路径中的路径部分
+        dirname = os.path.dirname(path)
 
-        os.mkdir(path + '\\' + folder_name)
-        return path + '\\' + folder_name
+        suffixes = ['_part', '.part', '.zip', '.rar']
+        for suffix in suffixes:
+            if suffix in path:
+                folder_name = os.path.basename(path).split(suffix)[0]
 
+        # 如果文件夹已经存在，删除该文件夹
+        if os.path.exists(dirname + '\\' + folder_name):
+            shutil.rmtree(dirname + '\\' + folder_name)
+
+        # 创建文件夹
+        os.mkdir(dirname + '\\' + folder_name)
+        return dirname + '\\' + folder_name
 
 
 if __name__ == "__main__":
