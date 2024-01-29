@@ -1,18 +1,17 @@
 # 打包为exe
 # pyinstaller -F --uac-admi Setup.py --noconsole
 
-import os ,json ,winreg
+import os ,winreg
+
+import Constant
 
 class Setup():
     def __init__(self):
 
-        # 运行环境设置
-        # 在 python 环境下运行时，需要设置 environment 变量为 'py'
-        # 打包为exe时，需要设置 environment 变量为 'exe'
-        environment = 'py'
-        if environment == 'py':
+        # 运行环境
+        if Constant.ENVIRONMENT == 'py':
             self.run_bat_path = f"{os.path.abspath(os.getcwd())}\\run_py.bat"
-        elif environment == 'exe':
+        elif Constant.ENVIRONMENT == 'exe':
             self.run_bat_path = f"{os.path.abspath(os.getcwd())}\\run_exe.bat"
 
         # 将config.json文件路径写入环境变量

@@ -3,19 +3,18 @@
 
 import sys ,os ,re ,shutil ,json ,zipfile ,rarfile
 
+import Constant
+
 
 class FileToZip():
 
     def __init__(self):
 
-        # 运行环境设置
-        # 在 python 环境下运行时，需要设置 environment 变量为 'py'
-        # 打包为exe时，需要设置 environment 变量为 'exe'
-        environment = 'py'
-        if environment == 'py':
+        # 运行环境
+        if Constant.ENVIRONMENT == 'py':
             rarfile.UNRAR_TOOL = r'E:\project\Python\FileToZip\UnRAR.exe'
             self.config_path = r'E:\project\Python\FileToZip\config.json'
-        elif environment == 'exe':
+        elif Constant.ENVIRONMENT == 'exe':
             rarfile.UNRAR_TOOL = os.environ.get('UnRAR')
             self.config_path = os.environ.get('FileToZip')
 
