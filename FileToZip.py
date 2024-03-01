@@ -222,6 +222,7 @@ class FileToZip():
         for suffix in suffixes:
             if suffix in path:
                 folder_name = os.path.basename(path).split(suffix)[0]
+                break
 
         # 如果文件夹已经存在，删除该文件夹
         if os.path.exists(dirname + '\\' + folder_name):
