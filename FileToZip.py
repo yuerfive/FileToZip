@@ -2,7 +2,7 @@
 # pyinstaller -F --uac-admi FileToZip.py --noconsole
 
 import sys ,os ,re ,shutil ,json ,zipfile ,rarfile, tempfile
-from multiprocessing import Pool, Manager, Process
+from multiprocessing import Pool, Manager, Process, freeze_support
 
 import Constant
 
@@ -27,7 +27,6 @@ class FileToZip():
         # 执行功能判断
         self.executiveFunctionJudgment()
 
-
     #  执行功能判断
     def executiveFunctionJudgment(self):
         # 以接收的参数的值来判断执行的功能是压缩还是解压
@@ -49,45 +48,44 @@ class FileToZip():
         # 获取文件名，或文件夹名
         zip_name = self.get_file_name(file_path)
 
-        with Manager() as manager:
-            file_queue = manager.Queue()
-            merge_queue = manager.Queue()
-            chunk_queue = manager.Queue()
-            pool = Pool()
+        # 压缩为单个zip文件
+        if os.path.isdir(file_path):
+            with Manager() as manager:
+                file_queue = manager.Queue()
+                merge_queue = manager.Queue()
+                pool = Pool()
 
-            # 压缩为单个zip文件
-            if os.path.isdir(file_path):
                 # 如果是目录，将目录及其内容压缩到 zip 文件中
                 with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
                     self.zip_directory(file_path, zipf, file_queue, file_path)
-            else:
-                # 如果是文件，直接将文件添加到 zip 文件中
-                with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    zipf.write(file_path, os.path.basename(file_path))
 
-            # 文件压缩合并进程
-            merger = Process(target=self.directory_merge_worker, args=(merge_queue, f'{zip_name}.zip'))
-            merger.start()
+                # 文件压缩合并进程
+                merger = Process(target=self.directory_merge_worker, args=(merge_queue, f'{zip_name}.zip'))
+                merger.start()
 
-            # 文件夹压缩多进程分块
-            for _ in range(pool._processes):
-                pool.apply_async(self.directory_worker, (file_queue, merge_queue))
+                # 文件夹压缩多进程分块
+                for _ in range(pool._processes):
+                    pool.apply_async(self.directory_worker, (file_queue, merge_queue))
 
-            file_queue.put(None)  # 结束信号放多次，因为每个进程都要接收
-            for _ in range(pool._processes):
-                file_queue.put(None)
+                file_queue.put(None)  # 结束信号放多次，因为每个进程都要接收
+                for _ in range(pool._processes):
+                    file_queue.put(None)
 
-            pool.close()
-            pool.join()
+                pool.close()
+                pool.join()
 
-            merge_queue.put(None)  # 结束信号给合并进程
-            merger.join()
+                merge_queue.put(None)  # 结束信号给合并进程
+                merger.join()
 
-            # 分卷压缩
-            file_size = os.path.getsize(f'{zip_name}.zip')
-            if file_size > self.volume_size and self.volume_size != 0:
-                self.zip_part_compress(zip_name)
+        else:
+            # 如果是文件，直接将文件添加到 zip 文件中
+            with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
+                zipf.write(file_path, os.path.basename(file_path))
 
+        # 分卷压缩
+        file_size = os.path.getsize(f'{zip_name}.zip')
+        if file_size > self.volume_size and self.volume_size != 0:
+            self.zip_part_compress(zip_name)
 
     # 文件夹压缩
     def zip_directory(self, file_path, zipf, file_queue, base_path=""):
@@ -282,6 +280,8 @@ class FileToZip():
 
 
 if __name__ == "__main__":
+    # 用于兼容windows多进程卡死问题
+    freeze_support()
     FileToZip()
 
 
