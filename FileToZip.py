@@ -1,7 +1,8 @@
 # 打包为exe
 # pyinstaller -F --uac-admi FileToZip.py --noconsole
 
-import sys ,os ,re ,shutil ,json ,zipfile ,rarfile
+import sys ,os ,re ,shutil ,json ,zipfile ,rarfile, tempfile
+from multiprocessing import Pool, Manager, Process
 
 import Constant
 
@@ -48,37 +49,59 @@ class FileToZip():
         # 获取文件名，或文件夹名
         zip_name = self.get_file_name(file_path)
 
-        # 压缩为单个zip文件
-        with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
+        with Manager() as manager:
+            file_queue = manager.Queue()
+            merge_queue = manager.Queue()
+            pool = Pool()
+
+            # 压缩为单个zip文件
             if os.path.isdir(file_path):
                 # 如果是目录，将目录及其内容压缩到 zip 文件中
-                self.zip_directory(file_path, zipf, file_path)
+                with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    self.zip_directory(file_path, zipf, file_queue, file_path)
             else:
                 # 如果是文件，直接将文件添加到 zip 文件中
-                zipf.write(file_path, os.path.basename(file_path))
+                with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    zipf.write(file_path, os.path.basename(file_path))
 
-        # 分卷压缩
-        file_size = os.path.getsize(f'{zip_name}.zip')
-        if file_size > self.volume_size and self.volume_size != 0:
-            self.zip_part_compress(zip_name)
+            # 文件夹压缩合并进程
+            merger = Process(target=self.directory_merge_worker, args=(merge_queue, f'{zip_name}.zip'))
+            merger.start()
+
+            # 文件夹压缩多进程分块
+            for _ in range(pool._processes):
+                pool.apply_async(self.directory_worker, (file_queue, merge_queue))
+
+            file_queue.put(None)  # 结束信号放多次，因为每个进程都要接收
+            for _ in range(pool._processes):
+                file_queue.put(None)
+
+            pool.close()
+            pool.join()
+
+            merge_queue.put(None)  # 结束信号给合并进程
+            merger.join()
+
+            # 分卷压缩
+            file_size = os.path.getsize(f'{zip_name}.zip')
+            if file_size > self.volume_size and self.volume_size != 0:
+                self.zip_part_compress(zip_name)
 
 
     # 文件夹压缩
-    def zip_directory(self ,file_path ,zipf ,base_path=""):
+    def zip_directory(self, file_path, zipf, file_queue, base_path=""):
         for root, dirs, files in os.walk(file_path):
             # 计算当前文件夹在 ZIP 中的相对路径
             relative_path = os.path.relpath(root, base_path)
-
             # 忽略根目录
             if relative_path!= ".":
                 # 添加当前文件夹到 ZIP 文件中
                 zipf.write(root, arcname=relative_path)
 
-            # 添加当前文件夹中的所有文件到 ZIP 文件中
             for file in files:
                 file_path = os.path.join(root, file)
                 relative_file_path = os.path.relpath(file_path, base_path)
-                zipf.write(file_path, arcname=relative_file_path)
+                file_queue.put((file_path, relative_file_path))
 
 
     # 分卷压缩
@@ -106,6 +129,31 @@ class FileToZip():
         # 删除原压缩文件，只保留分卷文件
         os.remove(f'{zip_name}.zip')
 
+    # 文件夹压缩多进程分块
+    def directory_worker(self, file_queue, merge_queue):
+        while True:
+            task = file_queue.get()
+            if task is None:
+                break
+            file_path, arcname = task
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                temp_file_name = temp_file.name
+            with zipfile.ZipFile(temp_file_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                zipf.write(file_path, arcname=arcname)
+            merge_queue.put(temp_file_name)
+
+    # 文件夹压缩合并进程
+    def directory_merge_worker(self, merge_queue, final_zip_file):
+        with zipfile.ZipFile(final_zip_file, 'a', zipfile.ZIP_DEFLATED) as zipf:
+            while True:
+                temp_zip_file = merge_queue.get()
+                if temp_zip_file is None:
+                    break
+                with zipfile.ZipFile(temp_zip_file, 'r') as temp_zip:
+                    for file_info in temp_zip.infolist():
+                        with temp_zip.open(file_info) as file:
+                            zipf.writestr(file_info, file.read())
+                os.remove(temp_zip_file)  # 删除临时文件
 
     # 提取文件名，如果是文件夹，则返回文件夹名
     def get_file_name(self ,path):
