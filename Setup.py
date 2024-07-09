@@ -1,7 +1,7 @@
 # 打包为exe
 # pyinstaller -F --uac-admi Setup.py --noconsole
 
-import os ,winreg
+import os, winreg
 
 import Constant
 
@@ -25,9 +25,8 @@ class Setup():
         self.addFileMenu()
         self.addFolderMenu()
 
-
     # 添加环境变量
-    def set_system_env_var(self ,var_name, var_value):
+    def set_system_env_var(self, var_name, var_value):
         try:
             key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")
             winreg.SetValueEx(key, var_name, 0, winreg.REG_EXPAND_SZ, var_value)
@@ -36,7 +35,6 @@ class Setup():
         except Exception as e:
             print(f"Error: {e}")
             return False
-
 
     # 添加文件菜单
     def addFileMenu(self):
@@ -66,7 +64,6 @@ class Setup():
 
             except Exception as e:
                 print(f"Error: {e}")
-
 
     # 添加文件夹菜单
     def addFolderMenu(self):
