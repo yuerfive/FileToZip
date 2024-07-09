@@ -52,6 +52,7 @@ class FileToZip():
         with Manager() as manager:
             file_queue = manager.Queue()
             merge_queue = manager.Queue()
+            chunk_queue = manager.Queue()
             pool = Pool()
 
             # 压缩为单个zip文件
@@ -64,7 +65,7 @@ class FileToZip():
                 with zipfile.ZipFile(f'{zip_name}.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
                     zipf.write(file_path, os.path.basename(file_path))
 
-            # 文件夹压缩合并进程
+            # 文件压缩合并进程
             merger = Process(target=self.directory_merge_worker, args=(merge_queue, f'{zip_name}.zip'))
             merger.start()
 
@@ -102,7 +103,6 @@ class FileToZip():
                 file_path = os.path.join(root, file)
                 relative_file_path = os.path.relpath(file_path, base_path)
                 file_queue.put((file_path, relative_file_path))
-
 
     # 分卷压缩
     def zip_part_compress(self ,zip_name):
